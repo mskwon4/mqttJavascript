@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+
+<head>
+  <meta charset="utf-8">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+  
+  <script type="text/javascript">
+  
+  var client;
+  var form; //= document.getElementById("tutorial");
+
+  var ip="192.168.123.134";
+  var port=9001;
+  var clientId;
+
+  var selectTopic;
+  var selectValue;
+  
+  function doConnect() {
+   clientId=document.getElementById("clientId").value;
+
+    //새 client 생성
+    client = new Paho.MQTT.Client(ip, Number(port), clientId);
+
+    //콜백 메서드 등록
+    client.onConnect = onConnect;
+    client.onMessageArrived = onMessageArrived;
+    client.onConnectionLost = onConnectionLost;
+    client.connect({onSuccess:onConnect});
+
+    console.log("onConnect");
+  }
+  
+  function doSubscribe() {
+   selectTopic=document.getElementById("selectTopic");
+   selectValue=selectTopic.options[selectTopic.selectedIndex].value;
+
+  //subscribe 시작
+  client.subscribe(selectValue);
+  console.log("subscribe-Topic: "+selectValue);
+  }
+  
+  function doSend() {
+   var msg=document.getElementById("msgText");
+
+   selectTopic=document.getElementById("selectTopic");
+   selectValue=selectTopic.options[selectTopic.selectedIndex].value;
+
+ message = new Paho.MQTT.Message(msg.value); //메시지 생성
+ message.destinationName = selectValue; //메시지에 topic 등록
+ client.send(message); //메시지 전송
+ msg.value="";
+
+ console.log("send-message: "+message.payloadString);
+  }
+
+  function doDisconnect() {
+      client.disconnect(); //연결 끊기
+      console.log("disconnect");
+  }
+  
+  // 웹 메시징 콜백 메서드들
+  function onConnect() {
+      var form = document.getElementById("example");
+      form.connected.checked= true;
+  }
+  
+  function onConnectionLost(responseObject) {
+      var form = document.getElementById("example");
+      form.connected.checked= false;
+      if (responseObject.errorCode !== 0)
+          alert(client.clientId+"\n"+responseObject.errorCode);
+  }
+  
+  function onMessageArrived(message) {
+      var form = document.getElementById("example");
+      console.log(message.payloadString);
+
+      //textarea에 sub한 메시지 출력
+      form.receiveMsg.value += (document.getElementById("clientId").value+" : "+message.payloadString + '\n');
+      form.receiveMsg.scrollTop = form.receiveMsg.scrollHeight;
+  }
+  
+  function doSetClient(){	//새로 만든부분. 포문 사용하면 될거같은 느낌...
+  	for (var i = Things.length - 1; i >= 0; i--) {
+  		Things[i]
+  	}
+  	doConnect();
+  }
+  </script>
+
+  <style type="text/css">
+   .textarea {
+    overflow-x:hidden; 
+    overflow-y:auto; 
+   }
+
+  </style>
+
+</head> 
+
+<body>
+  <h1>MQTT Web Test</h1>
+  <form id="example">
+  <fieldset>
+    <legend id="Connect" > Connect </legend>
+    broker 에 연결
+   <br><input type="text" id="clientId">
+    <input type="button" value="Connect" onClick="doConnect(this.form)" name="Connect"/>
+    <input type="checkbox" name="connected" disabled="disabled"/>
+  </fieldset>
+  
+  <fieldset>	//추가부분
+  	<legend id="numberOfClient">Client</legend>
+  	클라이언트 수
+  	<br><input type="text" id="numberOfClient">
+  	<input type="button" value="Set" onClick="doSetClient(this.form)" name="Set" />
+  </fieldset>
+  <fieldset>
+    <legend id="Topic" > Topic </legend>
+    subscribe, publish 할 topic 선택
+    <select id="selectTopic">
+      <option value="World" selected>World</option>
+      <option value="Topic">Topic</option>
+      <option value="Topic2">Topic2</option>
+    </select>
+    <br> <input type="button" value="Set Topic" onClick="doSubscribe(this.form)"/>
+  </fieldset>
+  
+  <fieldset>
+    <legend id="Send" > Send </legend>
+    선택한 topic으로 메시지 전송
+    <br>
+    <input type="text" id="msgText">
+    <input type="button" value="Send" onClick="doSend(this.form)"/>
+  </fieldset>
+  
+  <fieldset>
+    <legend id="Receive" > Receive </legend>
+      같은 Topic으로 메시지가 도착하면 textarea에 추가
+    <br><textarea name="receiveMsg" rows="15" cols="60" disabled="disabled" WRAP="VIRTUAL"></textarea>
+  </fieldset>
+  
+  <fieldset>
+    <legend id="Disconnect" > Disconnect </legend>
+      연결 끊기
+    <br> <input type="button" value="Disconnect" onClick="doDisconnect()"/>
+  </fieldset>
+  </form>
+</body>
+</html> 
