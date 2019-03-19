@@ -20,7 +20,7 @@
 
   var ip;
   var port;
-  var instanceTopic;
+  var topicIns;
   var selectTopic;
   var selectValue;
  
@@ -49,10 +49,10 @@
   }
 
   function doConnect() {
-   instanceTopic=document.getElementById("instanceTopic").value;
+   topicIns=document.getElementById("topicIns").value;
 
    for(var i=0;i<subNum;i++){
-    SubclientName[i]="Sub_"+instanceTopic+(i+1);
+    SubclientName[i]="Sub_"+topicIns+(i+1);
     //새 client 생성
     Subclient[i] = new Paho.MQTT.Client(ip, Number(port), SubclientName[i]);
 
@@ -66,7 +66,7 @@
   }
 
   for(var i=0;i<pubNum;i++){
-    PubclientName[i]="Pub_"+instanceTopic+(i+1);
+    PubclientName[i]="Pub_"+topicIns+(i+1);
     //새 client 생성
     Pubclient[i]=new Paho.MQTT.Client(ip, Number(port), PubclientName[i]); 
 
@@ -132,7 +132,7 @@
       var form = document.getElementById("MqttLoadTest");
       //form.connected.checked= false;
       if (responseObject.errorCode !== 0)
-          alert(client.instanceTopic+"\n"+responseObject.errorCode);
+          alert(client.topicIns+"\n"+responseObject.errorCode);
   }
  
   function onMessageArrived(message) {
@@ -177,7 +177,7 @@
     <br><input type="text" id="pubIns">
     <input type="button" value="createPubIns" onClick="setPubClient(this.form)" name="createPubIns"/>
     <br>Topic
-    <select id="instanceTopic">
+    <select id="topicIns">
       <option value="World" selected>World</option>
       <option value="Topic">Topic</option>
       <option value="Topic2">Topic2</option>
