@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<head>
+  <meta charset="utf-8">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+ 
+  <script type="text/javascript">
+ 
+  //Broker에 연결할 Subscribe 클라이언트 인스턴스
+  var Subclient;
+  var SubclientName;
+  var subNum;
+
+  //Publish Clients
+  var Pubclient;
+  var PubclientName;
+  var pubNum;
+
+  var form; //= document.getElementById("tutorial");
+
+  var ip;
+  var port;
+  var instanceTopic;
+  var selectTopic;
+  var selectValue;
+ 
+  //Broker 정하기
+  //입력한 ip와 port 번호를 설정
+  function setBroker(){
+    ip=document.getElementById("BrokerIp").value;
+    port=document.getElementById("BrokerPort").value;
+    console.log("Broker!!");
+  }
+
+  //Subscriber의 수를 결정 + 객체를 생성
+  function setSubClient(){
+    subNum=document.getElementById("subIns").value;
+    Subclient=new Array(subNum);
+    SubclientName=new Array(subNum);
+    console.log("Sub Ins!!");
+  }
+
+  //Publisher의 수를 결정 + 객체를 생성
+  function setPubClient(){
+    pubNum=document.getElementById("pubIns").value;
+    Pubclient=new Array(pubNum);
+    PubclientName=new Array(pubNum);
+    console.log("Pub Ins!!");
+  }
+
+  function doConnect() {
+   instanceTopic=document.getElementById("instanceTopic").value;
+
+   for(var i=0;i<subNum;i++){
+    SubclientName[i]="Sub_"+instanceTopic+(i+1);
+    //새 client 생성
+    Subclient[i] = new Paho.MQTT.Client(ip, Number(port), SubclientName[i]);
+
+    //콜백 메서드 등록
+    Subclient[i].onConnect = onConnect;
+    Subclient[i].onMessageArrived = onMessageArrived;
+    Subclient[i].onConnectionLost = onConnectionLost;
+    Subclient[i].connect({onSuccess:onConnect});
+
+    console.log("onConnect Running-"+i+"\n");
+  }
+
+  for(var i=0;i<pubNum;i++){
+    PubclientName[i]="Pub_"+instanceTopic+(i+1);
+    //새 client 생성
+    Pubclient[i]=new Paho.MQTT.Client(ip, Number(port), PubclientName[i]); 
+
+    //콜백 메서드 등록
+    Pubclient[i].onConnect = onConnect;
+    //Pubclient[i].onMessageArrived = onMessageArrived;
+    Pubclient[i].onConnectLost = onConnectionLost;
+    Pubclient[i].connect({onSuccess:onConnect});
+
+    console.log("onConnect Pub Runnnig-"+i+"\n");
+  }
+
+    console.log("onConnect Done\n");
+  }
+ 
+  function doSubscribe() {
+   selectTopic=document.getElementById("selectTopic");
+   selectValue=selectTopic.value;
+
+  //subscribe 시작
+  for(var i=0;i<subNum;i++){
+  Subclient[i].subscribe(selectValue);
+  console.log("subscribe_"+i+"-Topic : "+selectValue);
+    }
+  for(var i=0;i<pubNum;i++){
+  Pubclient[i].subscribe(selectValue);
+  console.log("pubscribe_"+i+"-Topic : "+selectValue);
+  }
+    console.log("subscribe done");
+  }
+ 
+  function doSend() {
+   var msg=document.getElementById("msgText");
+
+   selectTopic=document.getElementById("selectTopic");
+   selectValue=selectTopic.options[selectTopic.selectedIndex].value;
+
+ message = new Paho.MQTT.Message(msg.value); //메시지 생성
+ message.destinationName = selectValue; //메시지에 topic 등록
+  for(var i=0;i<pubNum;i++){
+  Pubclient[i].send(message); //메시지 전송
+  }
+ msg.value="";
+
+ console.log("send-message: "+message.payloadString);
+  }
+
+  function doDisconnect() {
+    for(var i=0;i<pubNum;i++)
+      Pubclient[i].disconnect(); //연결 끊기
+    for(var i=0;i<subNum;i++)
+      Subclient[i].disconnect(); //연결 끊기
+      console.log("disconnect");
+  }
+ 
+  // 웹 메시징 콜백 메서드들
+  function onConnect() {
+      var form = document.getElementById("MqttLoadTest");
+      //form.connected.checked= true;
+  }
+ 
+  function onConnectionLost(responseObject) {
+      var form = document.getElementById("MqttLoadTest");
+      //form.connected.checked= false;
+      if (responseObject.errorCode !== 0)
+          alert(client.instanceTopic+"\n"+responseObject.errorCode);
+  }
+ 
+  function onMessageArrived(message) {
+      var form = document.getElementById("MqttLoadTest");
+      console.log(message.payloadString);
+
+      //textarea에 sub한 메시지 출력
+      form.receiveMsg.value += (this+" : "+message.payloadString + '\n');
+      form.receiveMsg.scrollTop = form.receiveMsg.scrollHeight;
+  }
+ 
+  </script>
+
+  <style type="text/css">
+   .textarea {
+    overflow-x:hidden;
+    overflow-y:auto;
+   }
+
+  </style>
+
+</head>
+
+<body>
+  <h1>MQTT Load Test MasterPage</h1>
+  <form id="MqttLoadTest">
+  <fieldset>
+    <legend id="SetBroker" > Setting Broker </legend>
+    broker의 ip와 port 지정
+   <br>IP: <input type="text" id="BrokerIp">
+   <br>Port: <input type="text" id="BrokerPort">
+    <input type="button" value="broker" onClick="setBroker()"/>
+  </fieldset>
+
+  <fieldset>
+    <legend id="Instance"> Instance </legend>
+    생성할 Sub 클라이언트의 수
+    <br><input type="text" id="subIns">
+    <input type="button" value="createSubIns" onClick="setSubClient(this.form)" name="createSubIns"/>
+
+    <br>생성할 Pub 클라이언트의 수
+    <br><input type="text" id="pubIns">
+    <input type="button" value="createPubIns" onClick="setPubClient(this.form)" name="createPubIns"/>
+    <br>Topic
+    <br><select id="instanceTopic">
+      <option value="World" selected>World</option>
+      <option value="Topic">Topic</option>
+      <option value="Topic2">Topic2</option>
+    </select>
+    <input type="button" value="Connect" onClick="doConnect(this.form)" name="Connect"/>
+  </fieldset>
+
+  <fieldset>
+    <legend id="Topic" > Topic </legend>
+    subscribe, publish 할 topic 입력 
+    <select id="selectTopic">
+      <option value="World" selected>World</option>
+      <option value="Topic">Topic</option>
+      <option value="Topic2">Topic2</option>
+    </select>
+    <br><input type="button" value="Set Topic" onClick="doSubscribe(this.form)"/>
+  </fieldset>
+ 
+  <fieldset>
+    <legend id="Send" > Send </legend>
+    선택한 topic으로 전송할 메시지
+    <br>
+    <input type="text" id="msgText">
+    <input type="button" value="Send" onClick="doSend(this.form)"/>
+  </fieldset>
+ 
+  <!-- <fieldset>
+    <legend id="Receive" > Receive </legend>
+      같은 Topic으로 메시지가 도착하면 textarea에 추가
+    <br><textarea name="receiveMsg" rows="15" cols="60" disabled="disabled" WRAP="VIRTUAL"></textarea>
+  </fieldset> -->
+ 
+  <fieldset>
+    <legend id="Disconnect" > Disconnect </legend>
+      연결 끊기
+    <br> <input type="button" value="Disconnect" onClick="doDisconnect()"/>
+  </fieldset>
+  </form>
+</body>
+</html>  
+
